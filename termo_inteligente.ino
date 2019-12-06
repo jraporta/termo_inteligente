@@ -1,5 +1,5 @@
 /*
-  firmware para un termo_inteligente
+  firmware para un termo_inteligente v0.0.2
 */
 
 #include <WiFi101.h>
@@ -50,9 +50,7 @@ void setup() {
   printTime();     // print the current time
   printDate();     // print the current date
 
-  mqttClient.subscribe("homie/termo001/termostato/consigna/set");
-  mqttClient.subscribe("homie/termo001/termostato/histeresis/set");
-  mqttClient.subscribe("homie/termo001/resistencia/modo/set");
+  homieSubscribe();
 
   mqttClient.publish("homie/termo001/$state", "ready", true);
 }
@@ -62,6 +60,8 @@ void loop() {
   mqttClient.loop();
   if (!mqttClient.connected())  {
     connectMqttServer();
+    homieSubscribe();
+    mqttClient.publish("homie/termo001/$state", "ready", true);
   }
 
   if ((lastMillis + measuringT) < millis()) {
@@ -156,13 +156,12 @@ void connectMqttServer() {
   if ( status != WL_CONNECTED) {
     connectWifi();
   }
-  Serial.print("Connecting to MQTT Broker... ");
+  Serial.print("Connecting to MQTT Broker...");
   while (!mqttClient.connect("termo001", SECRET_USERNAME, SECRET_PASSWORD, "homie/termo001/$state", 2, 1, "lost", true)) {
     Serial.print(".");
     delay(1000);
   }
   Serial.println("done!!! ");
-  mqttClient.publish("homie/termo001/$state", "ready", true);
 }
 
 void connectWifi() {
@@ -248,9 +247,14 @@ void homiePublish() {
   mqttClient.publish("homie/termo001/sd/estado/$format", "ready,missing,error,writing", true);
 }
 
+void homieSubscribe() {
+  mqttClient.subscribe("homie/termo001/termostato/consigna/set");
+  mqttClient.subscribe("homie/termo001/termostato/histeresis/set");
+  mqttClient.subscribe("homie/termo001/resistencia/modo/set");
+}
 
 void messageReceived(char* topic, byte* payload, unsigned int length) {
-  String t = "", s = "";
+  String s = "";
   for (int i = 0; i < length; i++) {
     s = s + (char)payload[i];
   }
@@ -258,4 +262,32 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
   Serial.println(topic);
   Serial.print("Payload is: ");
   Serial.println(s);
+
+  if (strcmp(topic,"homie/termo001/termostato/consigna/set") == 0) {
+    consigna = s.toInt();
+    mqttClient.publish("homie/termo001/termostato/consigna", payload, true);
+    Serial.print("Nueva T de consigna: ");
+    Serial.println(s);
+  } else if (strcmp(topic,"homie/termo001/termostato/histeresis/set") == 0) {
+    histeresis = s.toInt();
+    mqttClient.publish("homie/termo001/termostato/histeresis", payload, true);
+    Serial.print("Nueva T de histeresis: ");
+    Serial.println(s);
+  } else if (strcmp(topic,"homie/termo001/resistencia/modo/set") == 0) {
+    if (s == "auto") {
+      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      Serial.print("Configurado en modo: ");
+      Serial.println(s);
+    } else if (s == "manualON") {
+      resistenciaON = true;
+      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      Serial.print("Configurado en modo: ");
+      Serial.println(s);
+    } else if (s == "manualOFF") {
+      resistenciaON = false;
+      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      Serial.print("Configurado en modo: ");
+      Serial.println(s);
+    }
+  }
 }
