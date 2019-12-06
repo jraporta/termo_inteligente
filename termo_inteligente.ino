@@ -100,22 +100,27 @@ void loop() {
     if (h2oTemperature < (consigna - histeresis) && (resistenciaON == false)) {
       resistenciaON = true;
       mqttOrSD("homie/termo001/resistencia/encendida", "true");
+      publishSensors();
     } else if (h2oTemperature >= consigna && (resistenciaON == true)) {
       resistenciaON = false;
       mqttOrSD("homie/termo001/resistencia/encendida", "false");
+      publishSensors();
     }
   } else {
     if (forcedON) {
       if (h2oTemperature < (maxTemperature - minHisteresis) && resistenciaON == false) {
         resistenciaON = true;
         mqttOrSD("homie/termo001/resistencia/encendida", "true");
+        publishSensors();
       } else if (h2oTemperature >= maxTemperature && resistenciaON == true) {
         resistenciaON = false;
         mqttOrSD("homie/termo001/resistencia/encendida", "false");
+        publishSensors();
       }
     } else if (resistenciaON) {
       resistenciaON = false;
       mqttOrSD("homie/termo001/resistencia/encendida", "false");
+      publishSensors();
     }
   }
 }

@@ -15,25 +15,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Actualizaciones OTA.
 - Mejorar "simulador" de temperatura del termo.
 - Alertas de mal funcionamiento.
-- QoS, pensar en cual es el apropiado.
 
 ## [Known Issues]
 - temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained".
-- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD())
-- Problemas para recibir la hora por NTP.
-- ¿Es necesario que se suscriba a los topics tras cada reconexión al broker?
-- Problemas en la reconexión al broker MQTT.
-- El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
+- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD().
 - Temperatura baja indefinidamente con la resistencia apagada.
 - Mosquitto no guarda los mensajes retenidos al reiniciar la Rpi (de Juan Ramon).
 
-## [0.0.4] - 05/12/2019
+## [Possible Issues]
+- Cómo reacciona a archivos de backup grandes. ¿Hay que ir vaciando el archivo?
+- El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
+- ¿Es necesario que se suscriba a los topics tras cada reconexión al broker?
+- ¿Qué pasa si todavía no ha recibido la hora por NTP y guarda un mensaje al SD?
+- QoS, pensar en cual es el apropiado.
+
+## [0.0.4] - 06/12/2019
 Milestone reached: Minimum requirements
 
 ### Added
 - Base de datos en SD.
 - Volcado de datos de la SD a la BD centralizada por MQTT.
-- Asegurar funcionamiento sin conexión al broker MQTT ni WiFi.
+- Permitir funcionamiento sin conexión al broker MQTT ni WiFi.
 
 ### Changed
 - Arreglado (hasta cierto punto) el NTP.
