@@ -1,3 +1,5 @@
+¡¡¡No actualizada!!!
+
 homie/termo001/$state
 homie/termo001/$homie 4.0.0
 homie/termo001/$name MySmartThermo
