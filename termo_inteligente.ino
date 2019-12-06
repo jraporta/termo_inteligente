@@ -1,11 +1,16 @@
 /*
-  firmware para un termo_inteligente v0.0.3
+  firmware para un termo_inteligente v0.0.4
 */
 
 #include <WiFi101.h>
 #include <PubSubClient.h>
 #include <RTCZero.h>
+#include <SPI.h>
+#include <SD.h>
+#include "RoundRobinbyJR.h"
 #include "arduino_secrets.h"   //please enter your sensitive data in the Secret tab/termo001_secrets.h
+
+char fileName[] = "cache.txt";
 
 void messageReceived(char* topic, byte* payload, unsigned int length);
 void connectMqttServer();
@@ -13,6 +18,7 @@ void homiePublish();
 void setRTCwithNTP();
 void printTime();
 void printDate();
+void mqttOrSD(char* topic, char* payload, char* fName = fileName);
 
 char ssid[] = SECRET_SSID;     // your network SSID (name)
 char pass[] = SECRET_PASS;     // your network password
@@ -27,14 +33,18 @@ PubSubClient mqttClient(server, port, messageReceived, net);
 RTCZero rtc; // create an RTC object
 const int GMT = 1; //change this to adapt it to your time zone
 
+File myFile;
+
 char buffer [20];
+const int bufferLen = 80;
+char buffer2 [bufferLen];
 
 float h2oTemperature = 20;
 int consigna = 60, histeresis = 10, maxTemperature = 90, minHisteresis = 5;
-bool modoAuto = true, forcedON;
+bool modoAuto = true, forcedON, errorSD = false, rtcFlag = false;
 bool resistenciaON = false;
 unsigned long lastMillis = 0, lastReport = 0;
-int reportT = 60000, measuringT = 5000;
+int reportT = 60000, measuringT = 5000, flagSD = 0;
 
 void setup() {
   delay(5000);
@@ -45,11 +55,17 @@ void setup() {
   mqttClient.publish("homie/termo001/$state", "init", true);
   homiePublish();
 
-  Serial.println("Setting the RTC:");
+  Serial.print("Initializing SD card...");
+  if (!SD.begin(4)) {
+    Serial.println("failed to open SD.");
+    mqttClient.publish("homie/termo001/sd/estado", "missing", true);
+    errorSD = true;
+  } else {
+    flagSD = NumberOfLogs(fileName);
+  }
+
   rtc.begin();     // initialize the RTC library
   setRTCwithNTP(); // set the RTC time/date using epoch from NTP
-  printTime();     // print the current time
-  printDate();     // print the current date
 
   homieSubscribe();
 
@@ -63,6 +79,9 @@ void loop() {
     connectMqttServer();
     homieSubscribe();
     mqttClient.publish("homie/termo001/$state", "ready", true);
+  }
+  if (!rtcFlag) {
+    setRTCwithNTP();
   }
 
   if ((lastMillis + measuringT) < millis()) {
@@ -80,23 +99,23 @@ void loop() {
   if (modoAuto) {
     if (h2oTemperature < (consigna - histeresis) && (resistenciaON == false)) {
       resistenciaON = true;
-      mqttClient.publish("homie/termo001/resistencia/encendida", "true", true);
+      mqttOrSD("homie/termo001/resistencia/encendida", "true");
     } else if (h2oTemperature >= consigna && (resistenciaON == true)) {
       resistenciaON = false;
-      mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+      mqttOrSD("homie/termo001/resistencia/encendida", "false");
     }
   } else {
     if (forcedON) {
       if (h2oTemperature < (maxTemperature - minHisteresis) && resistenciaON == false) {
         resistenciaON = true;
-        mqttClient.publish("homie/termo001/resistencia/encendida", "true", true);
+        mqttOrSD("homie/termo001/resistencia/encendida", "true");
       } else if (h2oTemperature >= maxTemperature && resistenciaON == true) {
         resistenciaON = false;
-        mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+        mqttOrSD("homie/termo001/resistencia/encendida", "false");
       }
     } else if (resistenciaON) {
       resistenciaON = false;
-      mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+      mqttOrSD("homie/termo001/resistencia/encendida", "false");
     }
   }
 }
@@ -112,32 +131,71 @@ void getTemperature() {
 
 void publishSensors() {
   snprintf(buffer, 20, "%f", h2oTemperature);
-  mqttClient.publish("homie/termo001/termostato/temperatura", buffer, true);
+  mqttOrSD("homie/termo001/termostato/temperatura", buffer);
 }
 
+void mqttOrSD(char* topic, char* payload, char* fName) {
+  if (!mqttClient.publish(topic, payload, true)) {
+    Serial.println("Unable to send MQTT msg, saving in SD.");
+    if (!errorSD && (myFile = SD.open(fName, FILE_WRITE))) {
+      Serial.print("Writing to ");
+      Serial.print(fName);
+      Serial.print(" .....");
+      myFile.print(rtc.getEpoch());
+      myFile.print("<");
+      myFile.print(topic);
+      myFile.print("<");
+      myFile.println(payload);
+      myFile.close();
+      Serial.println("done.");
+      flagSD++;
+    } else {
+      Serial.println("error opening file");
+    }
+  }
+}
+
+void SDtoMqtt() {
+  String s = "";
+  Serial.println("Dumping SD contents to broker.");
+  SD.remove("tempfile.txt");
+  for (int i = 0 ; i <= flagSD; i++) {
+    s = ReadLine(fileName, i);
+    s.toCharArray(buffer2, bufferLen);
+    mqttOrSD("homie/termo001/sd/dump", buffer2, "tempfile.txt");
+  }
+  SD.remove(fileName);
+  flagSD = NumberOfLogs("tempfile.txt");
+  if (flagSD) {
+    CopyFile("tempfile.txt", fileName);
+    Serial.println("Some/All of the msgs were not sent to the MQTT broker.");
+    mqttOrSD ("homie/termo001/sd/estado", "ready");
+  } else {
+    mqttOrSD ("homie/termo001/sd/estado", "empty");
+  }
+  SD.remove("tempfile.txt");
+  Serial.println("Finished SDtoMqtt().");
+}
 
 
 void setRTCwithNTP() {
   unsigned long epoch = 0;
-  int numberOfTries = 0, maxTries = 50;
-  while ((epoch == 0) && (numberOfTries < maxTries)) {
-    if ( status != WL_CONNECTED) {
-      connectWifi();
-    }
+  Serial.println("Setting the RTC:");
+  if ( status = WL_CONNECTED) {
     Serial.print("getting time...");
     epoch = WiFi.getTime();
     delay(1000);
-    Serial.println("done");
-    numberOfTries++;
   }
-  if (numberOfTries >= maxTries) {
-    Serial.print("NTP unreachable!!");
-    WiFi.disconnect();
+  if (epoch == 0) {
+    Serial.println("NTP unreachable!!");
   } else  {
     Serial.print("Epoch received: ");
     Serial.println(epoch);
     rtc.setEpoch(epoch);
     rtc.setHours(rtc.getHours() + GMT);
+    rtcFlag = true;
+    printTime();     // print the current time
+    printDate();     // print the current date
   }
 }
 
@@ -167,29 +225,39 @@ void print2digits(int number) {
 }
 
 void connectMqttServer() {
-  Serial.println("checking wifi...");
-  if ( status != WL_CONNECTED) {
-    connectWifi();
-  }
+  connectWifi();
   Serial.print("Connecting to MQTT Broker...");
-  while (!mqttClient.connect("termo001", SECRET_USERNAME, SECRET_PASSWORD, "homie/termo001/$state", 2, 1, "lost", true)) {
-    Serial.print(".");
-    delay(1000);
+  if (!mqttClient.connect("termo001", SECRET_USERNAME, SECRET_PASSWORD, "homie/termo001/$state", 2, 1, "lost", true)) {
+    Serial.println("error.");
+  } else {
+    Serial.println("done!!! ");
+    if (!errorSD) {
+      if (flagSD) {
+        mqttOrSD ("homie/termo001/sd/estado", "ready");
+      } else {
+        mqttOrSD ("homie/termo001/sd/estado", "empty");
+      }
+    }
   }
-  Serial.println("done!!! ");
+  delay(1000);
 }
 
 void connectWifi() {
-  Serial.print("\nConnecting to SSID: ");
-  Serial.print(ssid);
-  Serial.print("...");
-  while ( status != WL_CONNECTED) {
-    Serial.print(".");
+  Serial.println("checking wifi...");
+  status = WiFi.status();
+  if ( status != WL_CONNECTED) {
+    Serial.print("Connecting to SSID: ");
+    Serial.print(ssid);
+    Serial.print("...");
     status = WiFi.begin(ssid, pass);      // Connect to WPA/WPA2 network
-    delay(5000);
+    delay(1000);
   }
-  Serial.println("done!!!");
-  printWiFiStatus();
+  if ( status != WL_CONNECTED) {
+    Serial.println("error");
+  } else {
+    Serial.println("done!!!");
+    printWiFiStatus();
+  }
 }
 
 void printWiFiStatus() {
@@ -256,16 +324,18 @@ void homiePublish() {
   mqttClient.publish("homie/termo001/resistencia/modo/$format", "auto,manualON,manualOFF", true);
   mqttClient.publish("homie/termo001/sd/$name", "micro-SD", true);
   mqttClient.publish("homie/termo001/sd/$type", "8GB", true);
-  mqttClient.publish("homie/termo001/sd/$properties", "estado", true);
+  mqttClient.publish("homie/termo001/sd/$properties", "estado,orden", true);
   mqttClient.publish("homie/termo001/sd/estado/$name", "Estado de la SD", true);
   mqttClient.publish("homie/termo001/sd/estado/$datatype", "enum", true);
-  mqttClient.publish("homie/termo001/sd/estado/$format", "ready,missing,error,writing", true);
+  mqttClient.publish("homie/termo001/sd/estado/$format", "ready,missing,error,writing,empty,sending", true);
+  mqttClient.publish("homie/termo001/sd/download/$name", "Publish start to begin", true);
 }
 
 void homieSubscribe() {
   mqttClient.subscribe("homie/termo001/termostato/consigna/set");
   mqttClient.subscribe("homie/termo001/termostato/histeresis/set");
   mqttClient.subscribe("homie/termo001/resistencia/modo/set");
+  mqttClient.subscribe("homie/termo001/sd/download");
 }
 
 void messageReceived(char* topic, byte* payload, unsigned int length) {
@@ -290,7 +360,10 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
     mqttClient.publish("homie/termo001/termostato/histeresis", buffer, true);
     Serial.print("Nueva T de histeresis: ");
     Serial.println(histeresis);
-  } else if (strcmp(topic, "homie/termo001/resistencia/modo/set") == 0) {
+  } else if (strcmp(topic, "homie/termo001/sd/download") == 0 && s == "start" && flagSD) {
+    mqttClient.publish("homie/termo001/sd/estado", "sending", true);
+    SDtoMqtt();
+  }  else if (strcmp(topic, "homie/termo001/resistencia/modo/set") == 0) {
     if (s == "auto") {
       modoAuto = true;
       mqttClient.publish("homie/termo001/resistencia/modo", "auto", true);

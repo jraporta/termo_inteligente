@@ -1,0 +1,62 @@
+homie/termo001/$state
+homie/termo001/$homie 4.0.0
+homie/termo001/$name MySmartThermo
+homie/termo001/$nodes tesmostato,caudalimetro,resistencia,sd
+homie/termo001/$extensions
+homie/termo001/$ip
+homie/termo001/termostato/$name termostato
+homie/termo001/termostato/$properties temperatura,consigna,histeresis,tmax
+homie/termo001/termostato/temperatura
+homie/termo001/termostato/temperatura/$name "temperatura medida"
+homie/termo001/termostato/temperatura/$datatype float
+homie/termo001/termostato/temperatura/$unit ºC
+homie/termo001/termostato/temperatura/$format 0:100
+homie/termo001/termostato/consigna
+homie/termo001/termostato/consigna/$name "temperatura deseada"
+homie/termo001/termostato/consigna/$datatype integer
+homie/termo001/termostato/consigna/$unit ºC
+homie/termo001/termostato/consigna/$settable true
+homie/termo001/termostato/consigna/$format 0:100
+homie/termo001/termostato/histeresis/
+homie/termo001/termostato/histeresis/$name "histéresis"
+homie/termo001/termostato/histeresis/$datatype integer
+homie/termo001/termostato/histeresis/$unit ºC
+homie/termo001/termostato/histeresis/$settable true
+homie/termo001/termostato/histeresis/$format 1:50
+homie/termo001/termostato/tmax
+homie/termo001/termostato/tmax/$name "temperatura máxima de seguridad"
+homie/termo001/termostato/tmax/$datatype integer
+homie/termo001/termostato/tmax/$unit ºC
+homie/termo001/termostato/tmax/$settable true
+homie/termo001/termostato/tmax/$format 60:90
+homie/termo001/termostato/hvalle/
+homie/termo001/termostato
+homie/termo001/termostato
+homie/termo001/caudalimetro/$name caudalímetro
+homie/termo001/caudalimetro/$properties caudal,k
+homie/termo001/caudalimetro/caudal
+homie/termo001/caudalimetro/caudal/$name "caudal de agua"
+homie/termo001/caudalimetro/caudal/$datatype float
+homie/termo001/caudalimetro/caudal/$unit l/min
+homie/termo001/caudalimetro/k
+homie/termo001/caudalimetro/k/$name "constante del caudalímetro"
+homie/termo001/caudalimetro/k/$datatye float
+homie/termo001/caudalimetro/k/$unit hz·min/l
+homie/termo001/caudalimetro/k/$settable true
+homie/termo001/resistencia/$name resistencia
+homie/termo001/resistencia/$properties encendida,modo
+homie/termo001/resistencia/encendida
+homie/termo001/resistencia/encendida/$name "resistencia encendida"
+homie/termo001/resistencia/encendida/$datatype boolean
+homie/termo001/resistencia/encendida/$settable
+homie/termo001/resistencia/modo
+homie/termo001/resistencia/modo/$name "modo de funcionamiento"
+homie/termo001/resistencia/modo/$datatype enum
+homie/termo001/resistencia/modo/$settable true
+homie/termo001/resistencia/modo/$format auto,manual
+homie/termo01/sd/$name micro-SD
+homie/termo01/sd/$properties estado
+homie/termo01/sd/estado
+homie/termo01/sd/estado/$name estado
+homie/termo01/sd/estado/$datatype enum
+homie/termo01/sd/estado/$format ready,missing,error,writing

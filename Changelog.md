@@ -8,20 +8,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Usar sensor del MKR ENV Shield.
 - Editar todos los parámetros del termo remotamente por MQTT.
 - Gestión de tarifa eléctrica de discriminación horaria.
-- Base de datos en SD.
-- Volcado de datos de la SD a la BD centralizada.
-- Asegurar funcionamiento sin conexión al broker MQTT ni WiFi.
 - Añadir caudalímetro.
 - Añadir Watchdog.
 - Añadir funcionalidad anticongelación.
 - Recuperación de variables de configuración al reiniciarse el termo.
 - Actualizaciones OTA.
+- Mejorar "simulador" de temperatura del termo.
+- Alertas de mal funcionamiento.
+- QoS, pensar en cual es el apropiado.
 
-## Known Issues
-- Problemas para recobir la hora por NTP.
+## [Known Issues]
+- temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained".
+- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD())
+- Problemas para recibir la hora por NTP.
 - ¿Es necesario que se suscriba a los topics tras cada reconexión al broker?
 - Problemas en la reconexión al broker MQTT.
 - El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
+- Temperatura baja indefinidamente con la resistencia apagada.
+- Mosquitto no guarda los mensajes retenidos al reiniciar la Rpi (de Juan Ramon).
+
+## [0.0.4] - 05/12/2019
+Milestone reached: Minimum requirements
+
+### Added
+- Base de datos en SD.
+- Volcado de datos de la SD a la BD centralizada por MQTT.
+- Asegurar funcionamiento sin conexión al broker MQTT ni WiFi.
+
+### Changed
+- Arreglado (hasta cierto punto) el NTP.
 
 ## [0.0.3] - 06/12/2019
 
@@ -37,7 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Editar parámetros consigna, histéresis y modo de funcionamiento remotamente por MQTT.
 
 ## [0.0.1] - 05/12/2019
-
 Milestone reached: Prototype
 
 - Primera versión del firmware de un termo eléctrico "inteligente".
