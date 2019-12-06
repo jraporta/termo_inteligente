@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-
+- Establecer máximos y mínimos para las variables de configuración.
+- Usar sensor del MKR ENV Shield.
 - Editar todos los parámetros del termo remotamente por MQTT.
 - Gestión de tarifa eléctrica de discriminación horaria.
 - Base de datos en SD.
@@ -12,17 +13,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asegurar funcionamiento sin conexión al broker MQTT ni WiFi.
 - Añadir caudalímetro.
 - Añadir Watchdog.
+- Añadir funcionalidad anticongelación.
+- Recuperación de variables de configuración al reiniciarse el termo.
+- Actualizaciones OTA.
 
 ## Known Issues
-
 - Problemas para recobir la hora por NTP.
 - ¿Es necesario que se suscriba a los topics tras cada reconexión al broker?
 - Problemas en la reconexión al broker MQTT.
+- El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
+
+## [0.0.3] - 06/12/2019
+
+### Added
+- Implementado modo de funcionamiento automático y manual.
+
+### Changed
+- Corregidos bugs en las publicaciones MQTT.
 
 ## [0.0.2] - 06/12/2019
 
 ### Added
-
 - Editar parámetros consigna, histéresis y modo de funcionamiento remotamente por MQTT.
 
 ## [0.0.1] - 05/12/2019

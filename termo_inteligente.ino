@@ -1,5 +1,5 @@
 /*
-  firmware para un termo_inteligente v0.0.2
+  firmware para un termo_inteligente v0.0.3
 */
 
 #include <WiFi101.h>
@@ -30,7 +30,8 @@ const int GMT = 1; //change this to adapt it to your time zone
 char buffer [20];
 
 float h2oTemperature = 20;
-int consigna = 60, histeresis = 10;
+int consigna = 60, histeresis = 10, maxTemperature = 90, minHisteresis = 5;
+bool modoAuto = true, forcedON;
 bool resistenciaON = false;
 unsigned long lastMillis = 0, lastReport = 0;
 int reportT = 60000, measuringT = 5000;
@@ -76,13 +77,27 @@ void loop() {
       lastReport = lastMillis;
     }
   }
-
-  if (h2oTemperature < (consigna - histeresis) && (resistenciaON == false)) {
-    resistenciaON = true;
-    mqttClient.publish("homie/termo001/resistencia/encendida", "true", true);
-  } else if (h2oTemperature >= consigna && (resistenciaON == true)) {
-    resistenciaON = false;
-    mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+  if (modoAuto) {
+    if (h2oTemperature < (consigna - histeresis) && (resistenciaON == false)) {
+      resistenciaON = true;
+      mqttClient.publish("homie/termo001/resistencia/encendida", "true", true);
+    } else if (h2oTemperature >= consigna && (resistenciaON == true)) {
+      resistenciaON = false;
+      mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+    }
+  } else {
+    if (forcedON) {
+      if (h2oTemperature < (maxTemperature - minHisteresis) && resistenciaON == false) {
+        resistenciaON = true;
+        mqttClient.publish("homie/termo001/resistencia/encendida", "true", true);
+      } else if (h2oTemperature >= maxTemperature && resistenciaON == true) {
+        resistenciaON = false;
+        mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+      }
+    } else if (resistenciaON) {
+      resistenciaON = false;
+      mqttClient.publish("homie/termo001/resistencia/encendida", "false", true);
+    }
   }
 }
 
@@ -263,29 +278,34 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
   Serial.print("Payload is: ");
   Serial.println(s);
 
-  if (strcmp(topic,"homie/termo001/termostato/consigna/set") == 0) {
+  if (strcmp(topic, "homie/termo001/termostato/consigna/set") == 0) {
     consigna = s.toInt();
-    mqttClient.publish("homie/termo001/termostato/consigna", payload, true);
+    snprintf(buffer, 20, "%d", consigna);
+    mqttClient.publish("homie/termo001/termostato/consigna", buffer, true);
     Serial.print("Nueva T de consigna: ");
-    Serial.println(s);
-  } else if (strcmp(topic,"homie/termo001/termostato/histeresis/set") == 0) {
+    Serial.println(consigna);
+  } else if (strcmp(topic, "homie/termo001/termostato/histeresis/set") == 0) {
     histeresis = s.toInt();
-    mqttClient.publish("homie/termo001/termostato/histeresis", payload, true);
+    snprintf(buffer, 20, "%d", histeresis);
+    mqttClient.publish("homie/termo001/termostato/histeresis", buffer, true);
     Serial.print("Nueva T de histeresis: ");
-    Serial.println(s);
-  } else if (strcmp(topic,"homie/termo001/resistencia/modo/set") == 0) {
+    Serial.println(histeresis);
+  } else if (strcmp(topic, "homie/termo001/resistencia/modo/set") == 0) {
     if (s == "auto") {
-      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      modoAuto = true;
+      mqttClient.publish("homie/termo001/resistencia/modo", "auto", true);
       Serial.print("Configurado en modo: ");
       Serial.println(s);
     } else if (s == "manualON") {
-      resistenciaON = true;
-      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      modoAuto = false;
+      forcedON = true;
+      mqttClient.publish("homie/termo001/resistencia/modo", "manualON", true);
       Serial.print("Configurado en modo: ");
       Serial.println(s);
     } else if (s == "manualOFF") {
-      resistenciaON = false;
-      mqttClient.publish("homie/termo001/resistencia/modo", payload, true);
+      modoAuto = false;
+      forcedON = false;
+      mqttClient.publish("homie/termo001/resistencia/modo", "manualOFF", true);
       Serial.print("Configurado en modo: ");
       Serial.println(s);
     }
