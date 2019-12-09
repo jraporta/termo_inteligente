@@ -21,13 +21,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD().
 - Temperatura baja indefinidamente con la resistencia apagada.
 - Mosquitto no guarda los mensajes retenidos al reiniciar la Rpi (de Juan Ramon).
+- Si todavía no ha recibido la hora por NTP, guarda el mensaje al SD con un timestamp erróneo.
 
 ## [Possible Issues]
 - Cómo reacciona a archivos de backup grandes. ¿Hay que ir vaciando el archivo?
 - El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
-- ¿Es necesario que se suscriba a los topics tras cada reconexión al broker?
-- ¿Qué pasa si todavía no ha recibido la hora por NTP y guarda un mensaje al SD?
 - QoS, pensar en cual es el apropiado.
+
+## [0.0.5] - 09/12/2019
+
+### Added
+- Las publicaciones incorporan el timestamp del arduino.
 
 ## [0.0.4] - 06/12/2019
 Milestone reached: Minimum requirements
