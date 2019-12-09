@@ -46,6 +46,11 @@ bool resistenciaON = false;
 unsigned long lastMillis = 0, lastReport = 0;
 int reportT = 10000, measuringT = 3000, flagSD = 0;
 
+const int pinCaudalimetro = 5;
+int kCaudal = 5.5;
+volatile int pulsosCaudal = 0;
+float caudal = 0;
+
 void setup() {
   delay(5000);
   Serial.begin(9600);
@@ -69,6 +74,9 @@ void setup() {
 
   homieSubscribe();
 
+  pinMode(pinCaudalimetro, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(pinCaudalimetro), caudalInterrupt, RISING);
+
   mqttClient.publish("homie/termo001/$state", "ready", true);
 }
 
@@ -89,15 +97,17 @@ void loop() {
 
   if ((lastMillis + measuringT) < millis()) {
     getTemperature();
-    lastMillis = millis();
     actualizarResistencia();
     Serial.print(h2oTemperature);
-    Serial.print("ºC y la resistencia está: ");
+    Serial.print("ºC, consumo de ");
+    Serial.print(caudal);
+    Serial.print(" l/min y la resistencia está: ");
     if (resistenciaON) {
       Serial.println("encendida.");
     } else {
       Serial.println("apagada.");
     }
+    lastMillis = millis();
     if (((lastReport + reportT) < lastMillis) || (lastReport == 0)) {
       publishSensors();
     }
@@ -152,6 +162,11 @@ void publishSensors(bool resistChanged) {
   }
   snprintf(buffer, 40, "%f@%u", h2oTemperature, epoch);
   mqttOrSD("homie/termo001/termostato/temperatura", buffer);
+  int segundos = (lastMillis - lastReport)/1000;
+  caudal = (pulsosCaudal / segundos)*60 / kCaudal; //(Pulse frequency x 60) / 5.5 = flow rate (https://seeeddoc.github.io/G3-4_Water_Flow_sensor/)
+  pulsosCaudal = 0;
+  snprintf(buffer, 40, "%f@%u", caudal , epoch);
+  mqttOrSD("homie/termo001/caudalimetro/caudal", buffer);
   lastReport = lastMillis;
 }
 
@@ -407,4 +422,8 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
       Serial.println(s);
     }
   }
+}
+
+void caudalInterrupt() {
+  pulsosCaudal++;
 }

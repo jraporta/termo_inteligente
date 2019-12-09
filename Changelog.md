@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Usar sensor del MKR ENV Shield.
 - Editar todos los parámetros del termo remotamente por MQTT.
 - Gestión de tarifa eléctrica de discriminación horaria.
-- Añadir caudalímetro.
 - Añadir Watchdog.
 - Añadir funcionalidad anticongelación.
 - Recuperación de variables de configuración al reiniciarse el termo.
@@ -27,6 +26,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Cómo reacciona a archivos de backup grandes. ¿Hay que ir vaciando el archivo?
 - El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
 - QoS, pensar en cual es el apropiado.
+
+## [0.0.6] - 09/12/2019
+
+### Added
+- - Añadido caudalímetro.
 
 ## [0.0.5] - 09/12/2019
 
