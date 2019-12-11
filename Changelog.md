@@ -4,16 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-- Establecer máximos y mínimos para las variables de configuración.
 - Usar sensor del MKR ENV Shield.
-- Editar todos los parámetros del termo remotamente por MQTT.
+- Editar más parámetros del termo remotamente por MQTT.
 - Gestión de tarifa eléctrica de discriminación horaria.
-- Añadir Watchdog.
 - Añadir funcionalidad anticongelación.
-- Recuperación de variables de configuración al reiniciarse el termo.
+- Recuperación de variables de configuración al reiniciarse el termo (Si no hay MQTT )
 - Actualizaciones OTA.
 - Mejorar "simulador" de temperatura del termo.
 - Alertas de mal funcionamiento.
+- Implementación de relé.
+- Led de estado.
+- Botón de reset.
 
 ## [Known Issues]
 - temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained".
@@ -27,10 +28,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
 - QoS, pensar en cual es el apropiado.
 
+## [0.0.7] - 11/12/2019 comprobar
+
+### Added
+- Añadido Watchdog.
+- Añadida publicación de temperatura de consigna, histéresis, k, Tmax y modo.
+- Establecidos máximos y mínimos para las variables de configuración.
+
+### Tested
+- Recuperación de variables de configuración por MQTT (a publicar como retained).
+
 ## [0.0.6] - 09/12/2019
 
 ### Added
-- - Añadido caudalímetro.
+- Añadido caudalímetro.
 
 ## [0.0.5] - 09/12/2019
 
