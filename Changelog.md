@@ -10,16 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Añadir funcionalidad anticongelación.
 - Recuperación de variables de configuración al reiniciarse el termo (Si no hay MQTT )
 - Actualizaciones OTA.
-- Mejorar "simulador" de temperatura del termo.
-- Alertas de mal funcionamiento.
-- Implementación de relé.
-- Led de estado.
-- Botón de reset.
 
 ## [Known Issues]
-- temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained".
-- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD().
-- Temperatura baja indefinidamente con la resistencia apagada.
+- temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained", pero como llevan timestamp ya se sabe de cuando son.
+- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD()).
 - Mosquitto no guarda los mensajes retenidos al reiniciar la Rpi (de Juan Ramon).
 - Si todavía no ha recibido la hora por NTP, guarda el mensaje al SD con un timestamp erróneo.
 
@@ -27,8 +21,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Cómo reacciona a archivos de backup grandes. ¿Hay que ir vaciando el archivo?
 - El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
 - QoS, pensar en cual es el apropiado.
+- Compatibilidad de sleepydog con mkr1000.
 
-## [0.0.7] - 11/12/2019 comprobar
+## [0.1.0] - 12/12/2019
+
+### Added
+- Alerta de avería (temperatura por encima de la máxima).
+- Implementación del relé.
+- Led de encendido, avería y funcionamiento de la resistencia.
+- Botón de reset.
+
+### Changed
+- Mejorado el "simulador" de temperatura del termo.
+
+## [0.0.7] - 11/12/2019
 
 ### Added
 - Añadido Watchdog.

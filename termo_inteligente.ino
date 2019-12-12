@@ -10,6 +10,7 @@
 #include <Adafruit_SleepyDog.h>
 #include "RoundRobinbyJR.h"
 #include "arduino_secrets.h"   //please enter your sensitive data in the Secret tab/termo001_secrets.h
+#include "fakeTempSensor.h"
 
 char fileName[] = "cache.txt";
 
@@ -45,15 +46,27 @@ float h2oTemperature = 20;
 int consigna = 60, histeresis = 10, maxTemperature = 80, minTemperature = 3, minHisteresis = 3, maxHisteresis = 20;
 bool modoAuto = true, forcedON, errorSD = false, rtcFlag = false;
 bool resistenciaON = false;
-unsigned long lastMillis = 0, lastReport = 0;
-int reportT = 10000, measuringT = 3000, flagSD = 0;
+unsigned long lastMillis = 0, lastReport = 0, lastAlert = 0;
+int reportT = 10000, measuringT = 3000, flagSD = 0, contadorAlerta = 0;
 
-const int pinCaudalimetro = 5;
+const int pinCaudalimetro = 5, pinPower = 0, pinAlert = 3, pilotoResistencia = A3 , pinRelay = 1, pinRButton = 2;
 float kCaudal = 5.5;
 volatile int pulsosCaudal = 0;
 float caudal = 0;
 
 void setup() {
+
+  bool reset = false;
+  pinMode(pinPower, OUTPUT);
+  digitalWrite(pinPower, HIGH);
+  pinMode(pinAlert, OUTPUT);
+  digitalWrite(pinAlert, LOW);
+  pinMode(pilotoResistencia, OUTPUT);
+  digitalWrite(pilotoResistencia, LOW);
+  pinMode(pinRelay, OUTPUT);
+  digitalWrite(pinRelay, LOW);
+  pinMode(pinRButton, INPUT_PULLUP);
+
   delay(5000);
   Serial.begin(9600);
   Serial.println("firmware: termo_inteligente 0.0.7");
@@ -65,6 +78,13 @@ void setup() {
 
   connectMqttServer();
   mqttClient.publish("homie/termo001/$state", "init", true);
+  if (!digitalRead(pinRButton)) {
+    Serial.println("Resetting..............");
+    reset = true;
+    mqttClient.publish("homie/termo001/termostato/consigna/set", "", true);
+    mqttClient.publish("homie/termo001/termostato/histeresis/set", "", true);
+    mqttClient.publish("homie/termo001/resistencia/modo/set", "", true);
+  }
   homieSubscribe(); //Aunque ponga un delay después no consigo que se ejecute la recepción de los mensajes retenidos antes de publicar.
   homiePublish();
 
@@ -74,6 +94,12 @@ void setup() {
     mqttClient.publish("homie/termo001/sd/estado", "missing", true);
     errorSD = true;
   } else {
+    if (reset) {
+      SD.remove(fileName);
+      digitalWrite(pinAlert, HIGH);
+      delay(1000);
+      digitalWrite(pinAlert, LOW);
+    }
     flagSD = NumberOfLogs(fileName);
   }
 
@@ -82,7 +108,6 @@ void setup() {
 
   pinMode(pinCaudalimetro, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinCaudalimetro), caudalInterrupt, RISING);
-
   mqttClient.publish("homie/termo001/$state", "ready", true);
 }
 
@@ -102,7 +127,7 @@ void loop() {
   }
 
   if ((lastMillis + measuringT) < millis()) {
-    getTemperature();
+    getTemperature(resistenciaON, &h2oTemperature);
     actualizarResistencia();
     Serial.print(h2oTemperature);
     Serial.print("ºC, consumo de ");
@@ -116,6 +141,26 @@ void loop() {
     lastMillis = millis();
     if (((lastReport + reportT) < lastMillis) || (lastReport == 0)) {
       publishSensors();
+    }
+    if (h2oTemperature > (maxTemperature + 3)) {
+      if ((lastAlert + 10 * measuringT) < lastMillis) {
+        contadorAlerta = 1;
+      } else {
+        contadorAlerta ++;
+      }
+      lastAlert = lastMillis;
+    }
+  }
+
+  digitalWrite(pilotoResistencia, resistenciaON);
+  digitalWrite(pinRelay, resistenciaON);
+
+  if (contadorAlerta >= 5) {
+    Watchdog.disable();
+    mqttOrSD("homie/termo001/$state", "alert");
+    while (true) {
+      digitalWrite(pinAlert, !digitalRead(pinAlert));
+      delay(500);
     }
   }
 }
@@ -144,15 +189,6 @@ void actualizarResistencia() {
     }
   }
 }
-
-void getTemperature() {
-  if (resistenciaON == true) {
-    h2oTemperature += 1.06;
-  } else {
-    h2oTemperature -= 0.24;
-  }
-}
-
 
 void publishSensors(bool resistChanged) {
   Serial.println("Reporting...");
@@ -209,9 +245,9 @@ void SDtoMqtt() {
   if (flagSD) {
     CopyFile("tempfile.txt", fileName);
     Serial.println("Some/All of the msgs were not sent to the MQTT broker.");
-    mqttOrSD ("homie/termo001/sd/estado", "ready");
+    mqttClient.publish("homie/termo001/$state", "ready", true);
   } else {
-    mqttOrSD ("homie/termo001/sd/estado", "empty");
+    mqttClient.publish("homie/termo001/sd/estado", "empty", true);
   }
   SD.remove("tempfile.txt");
   Serial.println("Finished SDtoMqtt().");
@@ -399,14 +435,14 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
   Serial.println(s);
 
   if (strcmp(topic, "homie/termo001/termostato/consigna/set") == 0) {
-    consigna = min(s.toInt(),maxTemperature);
-    consigna = max(consigna,minTemperature);
+    consigna = min(s.toInt(), maxTemperature);
+    consigna = max(consigna, minTemperature);
     publicaConsigna();
     Serial.print("Nueva T de consigna: ");
     Serial.println(consigna);
   } else if (strcmp(topic, "homie/termo001/termostato/histeresis/set") == 0) {
-    histeresis = min(s.toInt(),maxHisteresis);
-    histeresis = max(histeresis,minHisteresis);
+    histeresis = min(s.toInt(), maxHisteresis);
+    histeresis = max(histeresis, minHisteresis);
     publicaHisteresis();
     Serial.print("Nueva T de histeresis: ");
     Serial.println(histeresis);
