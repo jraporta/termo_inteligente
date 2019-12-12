@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-- Usar sensor del MKR ENV Shield.
-- Editar más parámetros del termo remotamente por MQTT.
 - Gestión de tarifa eléctrica de discriminación horaria.
 - Añadir funcionalidad anticongelación.
 - Recuperación de variables de configuración al reiniciarse el termo (Si no hay MQTT )
@@ -13,15 +11,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Known Issues]
 - temperatura, resistenciaON, caudalímetro,etc. no deberían ser "retained", pero como llevan timestamp ya se sabe de cuando son.
-- Publicaciones de la SD no se deberían guardar en la SD (no usar mqttOrSD()).
-- Mosquitto no guarda los mensajes retenidos al reiniciar la Rpi (de Juan Ramon).
 - Si todavía no ha recibido la hora por NTP, guarda el mensaje al SD con un timestamp erróneo.
 
 ## [Possible Issues]
 - Cómo reacciona a archivos de backup grandes. ¿Hay que ir vaciando el archivo?
-- El programa se traga payloads aunque no correspondan con el tipo de variable... ¿Control en NodeRed?
-- QoS, pensar en cual es el apropiado.
 - Compatibilidad de sleepydog con mkr1000.
+
+## [0.1.1] - 12/12/2019
+
+### Added
+- Añadido aviso de servicio técnico requerido.
 
 ## [0.1.0] - 12/12/2019
 

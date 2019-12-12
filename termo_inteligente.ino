@@ -1,5 +1,5 @@
 /*
-  firmware para un termo_inteligente v0.0.7
+  firmware para un termo_inteligente v0.1.1
 */
 
 #include <WiFi101.h>
@@ -43,7 +43,7 @@ const int bufferLen = 80;
 char buffer2 [bufferLen];
 
 float h2oTemperature = 20;
-int consigna = 60, histeresis = 10, maxTemperature = 80, minTemperature = 3, minHisteresis = 3, maxHisteresis = 20;
+int consigna = 60, histeresis = 10, maxTemperature = 80, minTemperature = 5, minHisteresis = 3, maxHisteresis = 20;
 bool modoAuto = true, forcedON, errorSD = false, rtcFlag = false;
 bool resistenciaON = false;
 unsigned long lastMillis = 0, lastReport = 0, lastAlert = 0;
@@ -69,7 +69,7 @@ void setup() {
 
   delay(5000);
   Serial.begin(9600);
-  Serial.println("firmware: termo_inteligente 0.0.7");
+  Serial.println("firmware: termo_inteligente 0.1.1");
 
   int watch_dog = Watchdog.enable(180000);
   Serial.print("Enabled the watchdog with max countdown of ");
@@ -158,6 +158,7 @@ void loop() {
   if (contadorAlerta >= 5) {
     Watchdog.disable();
     mqttOrSD("homie/termo001/$state", "alert");
+    mqttOrSD("homie/termo001/ST_Requerido", "true");
     while (true) {
       digitalWrite(pinAlert, !digitalRead(pinAlert));
       delay(500);
@@ -377,13 +378,13 @@ void homiePublish() {
   mqttClient.publish("homie/termo001/termostato/histeresis/$datatype", "integer", true);
   mqttClient.publish("homie/termo001/termostato/histeresis/$unit", "ºC", true);
   mqttClient.publish("homie/termo001/termostato/histeresis/$settable", "true", true);
-  mqttClient.publish("homie/termo001/termostato/histeresis/$format", "1:50", true);
+  mqttClient.publish("homie/termo001/termostato/histeresis/$format", "3:20", true);
   publicatmax();
   mqttClient.publish("homie/termo001/termostato/tmax/$name", "Temperatura máxima de seguridad", true);
   mqttClient.publish("homie/termo001/termostato/tmax/$datatype", "integer", true);
   mqttClient.publish("homie/termo001/termostato/tmax/$unit", "ºC", true);
-  mqttClient.publish("homie/termo001/termostato/tmax/$settable", "false", true);
-  mqttClient.publish("homie/termo001/termostato/tmax/$format", "60:90", true);
+  //mqttClient.publish("homie/termo001/termostato/tmax/$settable", "false", true);
+  //mqttClient.publish("homie/termo001/termostato/tmax/$format", "60:90", true);
   mqttClient.publish("homie/termo001/caudalimetro/$name", "Caudalímetro", true);
   mqttClient.publish("homie/termo001/caudalimetro/$properties", "caudal,k", true);
   mqttClient.publish("homie/termo001/caudalimetro/caudal/$name", "Caudal", true);
@@ -394,8 +395,8 @@ void homiePublish() {
   mqttClient.publish("homie/termo001/caudalimetro/k/$name", "Constante del caudalímetro", true);
   mqttClient.publish("homie/termo001/caudalimetro/k/$datatype", "float", true);
   mqttClient.publish("homie/termo001/caudalimetro/k/$unit", "hz·min/l", true);
-  mqttClient.publish("homie/termo001/caudalimetro/k/$format", "0:50", true);
-  mqttClient.publish("homie/termo001/caudalimetro/k/$settable", "false", true);
+  //mqttClient.publish("homie/termo001/caudalimetro/k/$format", "0:50", true);
+  //mqttClient.publish("homie/termo001/caudalimetro/k/$settable", "false", true);
   mqttClient.publish("homie/termo001/caudalimetro/k/$format", "60:90", true);
   mqttClient.publish("homie/termo001/resistencia/$name", "Resistencia", true);
   mqttClient.publish("homie/termo001/resistencia/$type", "2 kW", true);
