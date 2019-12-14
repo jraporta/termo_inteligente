@@ -477,13 +477,13 @@ void publicaHisteresis() {
 }
 
 void publicaModo(bool serie) {
-  char* t;
+  char t[10];
   if (modoAuto) {
-    t = "auto";
+    strcpy(t, "auto");
   } else if (!modoAuto && forcedON) {
-    t == "manualON";
+    strcpy(t, "manualON");
   } else if (!modoAuto && !forcedON) {
-    t == "manualOFF";
+    strcpy(t, "manualOFF");
   }
   mqttClient.publish("homie/termo001/resistencia/modo", t, true);
   if (serie) {
